@@ -51,7 +51,7 @@ public class CollectionKey {
     private String name;
 
     @Lob
-    @Column(name = "announcement_text")
+    @Column(name = "announcement_text", columnDefinition = "LONGTEXT")
     private String announcementText = DEFAULT_ANNOUNCEMENT_TEXT;
 
     @Column(nullable = false)

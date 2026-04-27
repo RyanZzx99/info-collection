@@ -21,6 +21,9 @@
 
     <div class="notice success" th:if="${announcementSuccess}" th:text="${announcementSuccess}">保存成功</div>
     <div class="notice danger" th:if="${announcementError}" th:text="${announcementError}">保存失败</div>
+    <div class="notice success" th:if="${updateSuccess}" th:text="${updateSuccess}">修改成功</div>
+    <div class="notice success" th:if="${deleteSuccess}" th:text="${deleteSuccess}">删除成功</div>
+    <div class="notice danger" th:if="${deleteError}" th:text="${deleteError}">删除失败</div>
 
     <section class="panel">
         <div class="section-title">
@@ -84,11 +87,12 @@
                     <th>操作类型</th>
                     <th>具体考点</th>
                     <th>来源</th>
+                    <th>操作</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:if="${#lists.isEmpty(submissions)}">
-                    <td colspan="8" class="muted">暂无数据。</td>
+                    <td colspan="9" class="muted">暂无数据。</td>
                 </tr>
                 <tr th:each="item : ${submissions}">
                     <td th:text="${item.studentName}">姓名</td>
@@ -99,6 +103,19 @@
                     <td th:text="${item.operationType}">操作</td>
                     <td th:text="${item.testCenter ?: ''}">考点</td>
                     <td><span class="badge" th:text="${item.sourceType}">FORM</span></td>
+                    <td class="row-actions">
+                        <a
+                            class="button small secondary"
+                            th:href="@{/admin/keys/{key}/submissions/{id}/edit(key=${collectionKey.collectionKey}, id=${item.id})}">
+                            修改
+                        </a>
+                        <form
+                            th:action="@{/admin/keys/{key}/submissions/{id}/delete(key=${collectionKey.collectionKey}, id=${item.id})}"
+                            method="post"
+                            onsubmit="return confirm('确认删除这条已收集信息？删除后不可恢复。');">
+                            <button class="button small danger" type="submit">删除</button>
+                        </form>
+                    </td>
                 </tr>
                 </tbody>
             </table>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${collectionKey.name} + ' - 修改信息'">修改信息</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow" th:text="${collectionKey.collectionKey}">key</p>
+            <h1>修改已收集信息</h1>
+        </div>
+        <div class="actions">
+            <a class="button ghost" th:href="@{/admin/keys/{key}(key=${collectionKey.collectionKey})}">返回详情</a>
+        </div>
+    </header>
+
+    <div class="notice danger" th:if="${editError}" th:text="${editError}">保存失败</div>
+
+    <section class="panel">
+        <form
+            class="grid-form"
+            th:action="@{/admin/keys/{key}/submissions/{id}/edit(key=${collectionKey.collectionKey}, id=${submissionId})}"
+            th:object="${submissionForm}"
+            method="post">
+            <label>
+                <span>姓名</span>
+                <input th:field="*{studentName}" autocomplete="name">
+                <small class="field-error" th:if="${#fields.hasErrors('studentName')}" th:errors="*{studentName}"></small>
+            </label>
+
+            <label>
+                <span>开考时间（北京时间）</span>
+                <input type="datetime-local" th:field="*{examTimeBeijing}">
+                <small class="field-error" th:if="${#fields.hasErrors('examTimeBeijing')}" th:errors="*{examTimeBeijing}"></small>
+            </label>
+
+            <label>
+                <span>考试地点</span>
+                <select th:field="*{examLocationCountry}">
+                    <option value="">请选择</option>
+                    <option
+                        th:if="${submissionForm.examLocationCountry != null and !submissionForm.examLocationCountry.isBlank() and !locations.contains(submissionForm.examLocationCountry)}"
+                        th:value="${submissionForm.examLocationCountry}"
+                        th:text="${submissionForm.examLocationCountry}">
+                    </option>
+                    <option th:each="location : ${locations}" th:value="${location}" th:text="${location}"></option>
+                </select>
+                <small class="field-error" th:if="${#fields.hasErrors('examLocationCountry')}" th:errors="*{examLocationCountry}"></small>
+            </label>
+
+            <label>
+                <span>CB账号</span>
+                <input type="email" th:field="*{cbAccount}" autocomplete="email">
+                <small class="field-error" th:if="${#fields.hasErrors('cbAccount')}" th:errors="*{cbAccount}"></small>
+            </label>
+
+            <label>
+                <span>科目</span>
+                <select th:field="*{subject}">
+                    <option value="">请选择</option>
+                    <option
+                        th:if="${submissionForm.subject != null and !submissionForm.subject.isBlank() and !subjects.contains(submissionForm.subject)}"
+                        th:value="${submissionForm.subject}"
+                        th:text="${submissionForm.subject}">
+                    </option>
+                    <option th:each="subject : ${subjects}" th:value="${subject}" th:text="${subject}"></option>
+                </select>
+                <small class="field-error" th:if="${#fields.hasErrors('subject')}" th:errors="*{subject}"></small>
+            </label>
+
+            <label>
+                <span>操作类型</span>
+                <select th:field="*{operationType}">
+                    <option value="">请选择</option>
+                    <option th:each="type : ${operationTypes}" th:value="${type}" th:text="${type}"></option>
+                </select>
+                <small class="field-error" th:if="${#fields.hasErrors('operationType')}" th:errors="*{operationType}"></small>
+            </label>
+
+            <label class="span-2">
+                <span>具体考点</span>
+                <input th:field="*{testCenter}" placeholder="操作类型为 4小时线下面授 时必填">
+                <small class="field-error" th:if="${#fields.hasErrors('testCenter')}" th:errors="*{testCenter}"></small>
+            </label>
+
+            <input type="hidden" th:field="*{rawText}">
+
+            <div class="form-actions span-2">
+                <a class="button ghost" th:href="@{/admin/keys/{key}(key=${collectionKey.collectionKey})}">取消</a>
+                <button class="button primary" type="submit">保存修改</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

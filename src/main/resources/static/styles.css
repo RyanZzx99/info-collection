@@ -225,6 +225,10 @@ textarea:focus {
     justify-content: flex-end;
 }
 
+.row-actions form {
+    margin: 0;
+}
+
 .button {
     display: inline-flex;
     align-items: center;
@@ -263,6 +267,16 @@ textarea:focus {
     color: var(--ink);
     border-color: var(--line);
     background: rgba(255, 255, 255, 0.5);
+}
+
+.button.danger {
+    color: var(--danger);
+    border-color: rgba(162, 59, 42, 0.34);
+    background: rgba(162, 59, 42, 0.08);
+}
+
+.button.danger:hover {
+    background: rgba(162, 59, 42, 0.14);
 }
 
 .button.small {

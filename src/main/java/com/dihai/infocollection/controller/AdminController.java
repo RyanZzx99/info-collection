@@ -3,10 +3,12 @@ package com.dihai.infocollection.controller;
 import com.dihai.infocollection.dto.AnnouncementForm;
 import com.dihai.infocollection.dto.CollectionKeyForm;
 import com.dihai.infocollection.dto.ImportResult;
+import com.dihai.infocollection.dto.SubmissionForm;
 import com.dihai.infocollection.model.CollectionKey;
 import com.dihai.infocollection.model.Submission;
 import com.dihai.infocollection.service.CollectionKeyService;
 import com.dihai.infocollection.service.ExcelService;
+import com.dihai.infocollection.service.FormOptions;
 import com.dihai.infocollection.service.SubmissionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -122,6 +125,61 @@ public class AdminController {
         return "admin-detail";
     }
 
+    @PostMapping("/keys/{key}/submissions/{submissionId}/delete")
+    public String deleteSubmission(
+        @PathVariable String key,
+        @PathVariable Long submissionId,
+        RedirectAttributes redirectAttributes
+    ) {
+        try {
+            CollectionKey collectionKey = collectionKeyService.getByKey(key);
+            submissionService.deleteByCollectionKeyAndId(collectionKey, submissionId);
+            redirectAttributes.addFlashAttribute("deleteSuccess", "已删除一条信息");
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("deleteError", "删除失败：" + ex.getMessage());
+        }
+        return "redirect:/admin/keys/" + key;
+    }
+
+    @GetMapping("/keys/{key}/submissions/{submissionId}/edit")
+    public String editSubmission(
+        @PathVariable String key,
+        @PathVariable Long submissionId,
+        Model model
+    ) {
+        CollectionKey collectionKey = collectionKeyService.getByKey(key);
+        Submission submission = submissionService.getByCollectionKeyAndId(collectionKey, submissionId);
+        prepareEditSubmissionModel(model, collectionKey, submissionId, submissionService.toForm(submission));
+        return "admin-edit-submission";
+    }
+
+    @PostMapping("/keys/{key}/submissions/{submissionId}/edit")
+    public String updateSubmission(
+        @PathVariable String key,
+        @PathVariable Long submissionId,
+        @Valid @ModelAttribute("submissionForm") SubmissionForm submissionForm,
+        BindingResult bindingResult,
+        Model model,
+        RedirectAttributes redirectAttributes
+    ) {
+        CollectionKey collectionKey = collectionKeyService.getByKey(key);
+        if (bindingResult.hasErrors()) {
+            prepareEditSubmissionModel(model, collectionKey, submissionId, submissionForm);
+            model.addAttribute("editError", "保存失败：请检查表单中的红色提示");
+            return "admin-edit-submission";
+        }
+
+        try {
+            submissionService.updateByCollectionKeyAndId(collectionKey, submissionId, submissionForm);
+            redirectAttributes.addFlashAttribute("updateSuccess", "已修改一条信息");
+            return "redirect:/admin/keys/" + key;
+        } catch (IllegalArgumentException ex) {
+            prepareEditSubmissionModel(model, collectionKey, submissionId, submissionForm);
+            model.addAttribute("editError", "保存失败：" + ex.getMessage());
+            return "admin-edit-submission";
+        }
+    }
+
     @GetMapping("/keys/{key}/export")
     public ResponseEntity<byte[]> exportExcel(@PathVariable String key) throws IOException {
         CollectionKey collectionKey = collectionKeyService.getByKey(key);
@@ -155,5 +213,19 @@ public class AdminController {
         model.addAttribute("submissions", submissions);
         model.addAttribute("submissionService", submissionService);
         model.addAttribute("announcementForm", announcementForm);
+    }
+
+    private void prepareEditSubmissionModel(
+        Model model,
+        CollectionKey collectionKey,
+        Long submissionId,
+        SubmissionForm submissionForm
+    ) {
+        model.addAttribute("collectionKey", collectionKey);
+        model.addAttribute("submissionId", submissionId);
+        model.addAttribute("submissionForm", submissionForm);
+        model.addAttribute("locations", FormOptions.EXAM_LOCATIONS);
+        model.addAttribute("subjects", FormOptions.AP_SUBJECTS);
+        model.addAttribute("operationTypes", FormOptions.OPERATION_TYPES);
     }
 }

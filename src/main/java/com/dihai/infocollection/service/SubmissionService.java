@@ -33,6 +33,8 @@ public class SubmissionService {
 
     private static final DateTimeFormatter DISPLAY_FORMATTER =
         DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm '(GMT+8)'", Locale.ENGLISH);
+    private static final DateTimeFormatter EDIT_FORMATTER =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     private final SubmissionRepository submissionRepository;
 
@@ -46,6 +48,47 @@ public class SubmissionService {
 
     public long countByCollectionKey(CollectionKey collectionKey) {
         return submissionRepository.countByCollectionKey(collectionKey);
+    }
+
+    public Submission getByCollectionKeyAndId(CollectionKey collectionKey, Long submissionId) {
+        return submissionRepository.findByIdAndCollectionKey(submissionId, collectionKey)
+            .orElseThrow(() -> new IllegalArgumentException("记录不存在或不属于当前收集任务"));
+    }
+
+    public SubmissionForm toForm(Submission submission) {
+        SubmissionForm form = new SubmissionForm();
+        form.setStudentName(submission.getStudentName());
+        form.setExamTimeBeijing(submission.getExamTimeBeijing() == null ? "" : EDIT_FORMATTER.format(submission.getExamTimeBeijing()));
+        form.setExamLocationCountry(submission.getExamLocationCountry());
+        form.setCbAccount(submission.getCbAccount());
+        form.setSubject(submission.getSubject());
+        form.setOperationType(submission.getOperationType());
+        form.setTestCenter(submission.getTestCenter());
+        form.setRawText(submission.getRawText());
+        return form;
+    }
+
+    @Transactional
+    public void deleteByCollectionKeyAndId(CollectionKey collectionKey, Long submissionId) {
+        Submission submission = getByCollectionKeyAndId(collectionKey, submissionId);
+        submissionRepository.delete(submission);
+    }
+
+    @Transactional
+    public Submission updateByCollectionKeyAndId(CollectionKey collectionKey, Long submissionId, SubmissionForm form) {
+        validate(form);
+        Submission submission = getByCollectionKeyAndId(collectionKey, submissionId);
+        ensureNotDuplicate(collectionKey, form, submissionId);
+
+        submission.setStudentName(clean(form.getStudentName()));
+        submission.setExamTimeBeijing(parseExamTime(form.getExamTimeBeijing()));
+        submission.setExamLocationCountry(clean(form.getExamLocationCountry()));
+        submission.setCbAccount(normalizeCbAccount(form.getCbAccount()));
+        submission.setSubject(clean(form.getSubject()));
+        submission.setOperationType(clean(form.getOperationType()));
+        submission.setTestCenter(cleanToNull(form.getTestCenter()));
+        submission.setRawText(cleanToNull(form.getRawText()));
+        return submissionRepository.save(submission);
     }
 
     @Transactional
@@ -137,6 +180,18 @@ public class SubmissionService {
             );
     }
 
+    public boolean existsByDedupeKeyExcludingId(CollectionKey collectionKey, SubmissionForm form, Long excludedId) {
+        DedupeKey dedupeKey = dedupeKey(form);
+        return dedupeKey.isComplete()
+            && submissionRepository.existsByCollectionKeyAndCbAccountIgnoreCaseAndStudentNameIgnoreCaseAndSubjectIgnoreCaseAndIdNot(
+                collectionKey,
+                dedupeKey.cbAccount(),
+                dedupeKey.studentName(),
+                dedupeKey.subject(),
+                excludedId
+            );
+    }
+
     public LocalDateTime parseExamTime(String value) {
         String normalized = clean(value)
             .replace("（GMT+8）", "")
@@ -187,6 +242,15 @@ public class SubmissionService {
     private void ensureNotDuplicate(CollectionKey collectionKey, SubmissionForm form) {
         if (existsByDedupeKey(collectionKey, form)) {
             throw new IllegalArgumentException("信息已存在，不能重复录入："
+                + clean(form.getCbAccount()) + " / "
+                + clean(form.getStudentName()) + " / "
+                + clean(form.getSubject()));
+        }
+    }
+
+    private void ensureNotDuplicate(CollectionKey collectionKey, SubmissionForm form, Long excludedId) {
+        if (existsByDedupeKeyExcludingId(collectionKey, form, excludedId)) {
+            throw new IllegalArgumentException("已存在相同 CB账号、姓名、科目的其他记录："
                 + clean(form.getCbAccount()) + " / "
                 + clean(form.getStudentName()) + " / "
                 + clean(form.getSubject()));

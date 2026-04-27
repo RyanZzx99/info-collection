@@ -64,7 +64,7 @@ public class Submission {
     private SourceType sourceType = SourceType.FORM;
 
     @Lob
-    @Column(name = "raw_text")
+    @Column(name = "raw_text", columnDefinition = "LONGTEXT")
     private String rawText;
 
     @Column(nullable = false, updatable = false)
