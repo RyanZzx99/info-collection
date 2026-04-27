@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${collectionKey.name} + ' - 后台'">后台详情</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell wide">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow" th:text="${collectionKey.collectionKey}">key</p>
+            <h1 th:text="${collectionKey.name}">收集详情</h1>
+        </div>
+        <div class="actions">
+            <a class="button ghost" th:href="@{/admin}">返回</a>
+            <a class="button primary" th:href="@{/admin/keys/{key}/export(key=${collectionKey.collectionKey})}">导出 Excel</a>
+        </div>
+    </header>
+
+    <div class="notice success" th:if="${announcementSuccess}" th:text="${announcementSuccess}">保存成功</div>
+    <div class="notice danger" th:if="${announcementError}" th:text="${announcementError}">保存失败</div>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>前台页面说明文字</h2>
+            <p>这段文字会显示在填写页面标题下方。</p>
+        </div>
+        <form class="stack" th:action="@{/admin/keys/{key}/announcement(key=${collectionKey.collectionKey})}" th:object="${announcementForm}" method="post">
+            <label>
+                <span>说明文字</span>
+                <textarea class="announcement-editor" rows="13" th:field="*{announcementText}"></textarea>
+                <small class="field-error" th:if="${#fields.hasErrors('announcementText')}" th:errors="*{announcementText}"></small>
+            </label>
+            <div class="form-actions">
+                <button class="button primary" type="submit">保存说明文字</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>模板导入</h2>
+            <p>按原 Excel 模板上传，示例行会自动跳过。</p>
+        </div>
+        <form class="inline-form" th:action="@{/admin/keys/{key}/import(key=${collectionKey.collectionKey})}" method="post" enctype="multipart/form-data">
+            <label>
+                <span>Excel 文件</span>
+                <input type="file" name="file" accept=".xlsx" required>
+            </label>
+            <button class="button secondary" type="submit">上传导入</button>
+        </form>
+
+        <div class="notice success" th:if="${importResult}">
+            已处理 <strong th:text="${importResult.totalRows}">0</strong> 行，成功导入
+            <strong th:text="${importResult.importedRows}">0</strong> 行。
+        </div>
+        <div class="notice danger" th:if="${importResult != null and !#lists.isEmpty(importResult.errors)}">
+            <p>以下行未导入：</p>
+            <ul>
+                <li th:each="error : ${importResult.errors}" th:text="${error}">错误</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>已收集信息</h2>
+            <div class="section-actions">
+                <p th:text="'共 ' + ${#lists.size(submissions)} + ' 条记录'">共 0 条记录</p>
+                <a class="button small secondary" th:href="@{/admin/keys/{key}(key=${collectionKey.collectionKey})}">刷新已收集信息</a>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>开考时间</th>
+                    <th>考试地点</th>
+                    <th>CB账号</th>
+                    <th>科目</th>
+                    <th>操作类型</th>
+                    <th>具体考点</th>
+                    <th>来源</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(submissions)}">
+                    <td colspan="8" class="muted">暂无数据。</td>
+                </tr>
+                <tr th:each="item : ${submissions}">
+                    <td th:text="${item.studentName}">姓名</td>
+                    <td th:text="${submissionService.formatExamTime(item.examTimeBeijing)}">时间</td>
+                    <td th:text="${item.examLocationCountry}">地点</td>
+                    <td class="mono" th:text="${item.cbAccount}">账号</td>
+                    <td th:text="${item.subject}">科目</td>
+                    <td th:text="${item.operationType}">操作</td>
+                    <td th:text="${item.testCenter ?: ''}">考点</td>
+                    <td><span class="badge" th:text="${item.sourceType}">FORM</span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

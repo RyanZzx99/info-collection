@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${collectionKey.name} + ' - 信息填写'">信息填写</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow" th:text="${collectionKey.collectionKey}">key</p>
+            <h1 th:text="${collectionKey.name}">信息填写</h1>
+            <div
+                class="page-announcement"
+                th:if="${collectionKey.announcementText != null and !collectionKey.announcementText.isBlank()}"
+                th:text="${collectionKey.announcementText}">
+                页面说明文字
+            </div>
+        </div>
+    </header>
+
+    <div class="notice success" th:if="${parsed}">
+        已识别 <strong th:text="${parsedCount}">1</strong> 条信息并填入下方表格，请检查后提交。
+    </div>
+    <div class="notice success" th:if="${importResult}">
+        Excel 已处理 <strong th:text="${importResult.totalRows}">0</strong> 行，成功导入
+        <strong th:text="${importResult.importedRows}">0</strong> 行。
+    </div>
+    <div class="notice danger" th:if="${importResult != null and !#lists.isEmpty(importResult.errors)}">
+        <p>以下行未导入：</p>
+        <ul>
+            <li th:each="error : ${importResult.errors}" th:text="${error}">错误</li>
+        </ul>
+    </div>
+    <div class="notice danger" th:if="${formError}" th:text="${formError}">错误</div>
+    <div class="notice success" th:if="${submittedCount != null and submittedCount > 0}">
+        已成功保存 <strong th:text="${submittedCount}">0</strong> 条信息。
+    </div>
+    <div class="notice warning" th:if="${duplicateSubmissions != null and !#lists.isEmpty(duplicateSubmissions)}">
+        有 <strong th:text="${#lists.size(duplicateSubmissions)}">0</strong> 条重复信息未录入，重复判断规则为 CB账号 + 姓名 + 科目。
+    </div>
+
+    <section class="panel" th:if="${importResult != null and !#lists.isEmpty(importResult.importedSubmissions)}">
+        <div class="section-title">
+            <h2>本次 Excel 导入记录</h2>
+            <p th:text="'成功入库 ' + ${#lists.size(importResult.importedSubmissions)} + ' 条'">成功入库 0 条</p>
+        </div>
+        <div class="sheet-wrap">
+            <table class="sheet-table readonly">
+                <thead>
+                <tr>
+                    <th>姓名</th>
+                    <th>开考时间</th>
+                    <th>考试地点</th>
+                    <th>CB账号</th>
+                    <th>科目</th>
+                    <th>操作类型</th>
+                    <th>具体考点</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${importResult.importedSubmissions}">
+                    <td th:text="${item.studentName}">姓名</td>
+                    <td th:text="${submissionService.formatExamTime(item.examTimeBeijing)}">时间</td>
+                    <td th:text="${item.examLocationCountry}">地点</td>
+                    <td class="mono" th:text="${item.cbAccount}">账号</td>
+                    <td th:text="${item.subject}">科目</td>
+                    <td th:text="${item.operationType}">操作类型</td>
+                    <td th:text="${item.testCenter ?: ''}">考点</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>Excel 模板批量填写</h2>
+            <p>先下载模板，按列填写后上传；示例行会自动跳过。</p>
+        </div>
+        <form class="inline-form" th:action="@{/collect/{key}/import(key=${collectionKey.collectionKey})}" method="post" enctype="multipart/form-data">
+            <label>
+                <span>模板文件</span>
+                <a class="button secondary" th:href="@{/collect/{key}/template(key=${collectionKey.collectionKey})}">下载 Excel 模板</a>
+            </label>
+            <label>
+                <span>上传已填写 Excel</span>
+                <input type="file" name="file" accept=".xlsx" required>
+            </label>
+            <button class="button primary" type="submit">按模板导入</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>自然语言识别</h2>
+            <p>多条信息用英文分号 ; 或中文分号 ；隔开。</p>
+        </div>
+        <form class="stack js-loading-form" th:action="@{/collect/{key}/parse(key=${collectionKey.collectionKey})}" th:object="${naturalLanguageForm}" method="post">
+            <label>
+                <span class="field-label-line">
+                    <span>原始信息</span>
+                    <span class="field-example">例：小王，xiaowang@outlook.com，五月四日上午八点，澳门，英语；李四，lisi@example.com，5月4日下午2点半，香港，Biology，4小时线下面授，九龙</span>
+                </span>
+                <textarea rows="5" th:field="*{rawText}" placeholder="可粘贴一条或多条信息"></textarea>
+                <small class="field-error" th:if="${#fields.hasErrors('rawText')}" th:errors="*{rawText}"></small>
+            </label>
+            <div class="recognition-actions">
+                <button class="button secondary js-loading-button" type="submit">
+                    <span class="button-label">识别并填入表单</span>
+                    <span class="button-loading" aria-hidden="true">识别中...</span>
+                </button>
+                <span class="loading-note" role="status">正在调用识别接口，请不要重复点击。</span>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>表单确认</h2>
+            <p>按 Excel 行检查和补齐信息，每行会保存为一条记录。</p>
+        </div>
+        <form class="sheet-form js-loading-form" th:action="@{/collect/{key}(key=${collectionKey.collectionKey})}" th:object="${batchSubmissionForm}" method="post">
+            <div class="sheet-wrap">
+                <table class="sheet-table">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>姓名</th>
+                        <th>开考时间（北京时间）</th>
+                        <th>考试地点</th>
+                        <th>CB账号</th>
+                        <th>科目</th>
+                        <th>操作类型</th>
+                        <th>具体考点</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="row, stat : *{rows}">
+                        <td class="row-number" th:text="${stat.index + 1}">1</td>
+                        <td>
+                            <input class="sheet-input compact" th:field="*{rows[__${stat.index}__].studentName}" autocomplete="name">
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].studentName')}" th:errors="*{rows[__${stat.index}__].studentName}"></small>
+                        </td>
+                        <td>
+                            <input class="sheet-input time" type="datetime-local" th:field="*{rows[__${stat.index}__].examTimeBeijing}">
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].examTimeBeijing')}" th:errors="*{rows[__${stat.index}__].examTimeBeijing}"></small>
+                        </td>
+                        <td>
+                            <select class="sheet-input compact" th:field="*{rows[__${stat.index}__].examLocationCountry}">
+                                <option value="">请选择</option>
+                                <option
+                                    th:if="${row.examLocationCountry != null and !row.examLocationCountry.isBlank() and !locations.contains(row.examLocationCountry)}"
+                                    th:value="${row.examLocationCountry}"
+                                    th:text="${row.examLocationCountry}">
+                                </option>
+                                <option th:each="location : ${locations}" th:value="${location}" th:text="${location}"></option>
+                            </select>
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].examLocationCountry')}" th:errors="*{rows[__${stat.index}__].examLocationCountry}"></small>
+                        </td>
+                        <td>
+                            <input class="sheet-input email" type="email" th:field="*{rows[__${stat.index}__].cbAccount}" autocomplete="email">
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].cbAccount')}" th:errors="*{rows[__${stat.index}__].cbAccount}"></small>
+                        </td>
+                        <td>
+                            <select class="sheet-input subject" th:field="*{rows[__${stat.index}__].subject}">
+                                <option value="">请选择</option>
+                                <option
+                                    th:if="${row.subject != null and !row.subject.isBlank() and !subjects.contains(row.subject)}"
+                                    th:value="${row.subject}"
+                                    th:text="${row.subject}">
+                                </option>
+                                <option th:each="subject : ${subjects}" th:value="${subject}" th:text="${subject}"></option>
+                            </select>
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].subject')}" th:errors="*{rows[__${stat.index}__].subject}"></small>
+                        </td>
+                        <td>
+                            <select class="sheet-input operation" th:field="*{rows[__${stat.index}__].operationType}">
+                                <option value="">请选择</option>
+                                <option th:each="type : ${operationTypes}" th:value="${type}" th:text="${type}"></option>
+                            </select>
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].operationType')}" th:errors="*{rows[__${stat.index}__].operationType}"></small>
+                        </td>
+                        <td>
+                            <input class="sheet-input center" th:field="*{rows[__${stat.index}__].testCenter}" placeholder="面授必填">
+                            <input type="hidden" th:field="*{rows[__${stat.index}__].rawText}">
+                            <small class="field-error" th:if="${#fields.hasErrors('rows[' + stat.index + '].testCenter')}" th:errors="*{rows[__${stat.index}__].testCenter}"></small>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-actions">
+                <button class="button primary js-loading-button" type="submit">
+                    <span class="button-label">提交信息</span>
+                    <span class="button-loading" aria-hidden="true">提交中...</span>
+                </button>
+                <span class="loading-note" role="status">正在保存信息，完成后会显示成功或失败原因。</span>
+            </div>
+        </form>
+
+        <div class="duplicate-result" th:if="${duplicateSubmissions != null and !#lists.isEmpty(duplicateSubmissions)}">
+            <div class="section-title">
+                <h2>重复信息列表</h2>
+                <p>以下信息未重复录入，如需修改后提交，可直接在上方表格调整。</p>
+            </div>
+            <div class="sheet-wrap">
+                <table class="sheet-table readonly">
+                    <thead>
+                    <tr>
+                        <th>原行号</th>
+                        <th>重复原因</th>
+                        <th>姓名</th>
+                        <th>开考时间</th>
+                        <th>考试地点</th>
+                        <th>CB账号</th>
+                        <th>科目</th>
+                        <th>操作类型</th>
+                        <th>具体考点</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${duplicateSubmissions}">
+                        <td class="row-number" th:text="${item.rowNumber}">1</td>
+                        <td th:text="${item.reason}">原因</td>
+                        <td th:text="${item.studentName}">姓名</td>
+                        <td th:text="${item.examTimeBeijing}">时间</td>
+                        <td th:text="${item.examLocationCountry}">地点</td>
+                        <td class="mono" th:text="${item.cbAccount}">账号</td>
+                        <td th:text="${item.subject}">科目</td>
+                        <td th:text="${item.operationType}">操作类型</td>
+                        <td th:text="${item.testCenter}">考点</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+<script>
+    document.querySelectorAll(".js-loading-form").forEach((form) => {
+        form.addEventListener("submit", () => {
+            const button = form.querySelector(".js-loading-button");
+            if (!button) {
+                return;
+            }
+            button.classList.add("is-loading");
+            button.disabled = true;
+            form.classList.add("is-loading");
+        });
+    });
+</script>
+</body>
+</html>

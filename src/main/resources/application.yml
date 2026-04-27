@@ -1,0 +1,34 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: info-collection
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:info_collection_dev}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:info_collection_dev_user}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  security:
+    user:
+      name: ${ADMIN_USER:admin}
+      password: ${ADMIN_PASSWORD:}
+
+app:
+  default-exam-year: ${DEFAULT_EXAM_YEAR:2026}
+
+deepseek:
+  enabled: ${DEEPSEEK_ENABLED:true}
+  api-key: ${DEEPSEEK_API_KEY:}
+  api-url: ${DEEPSEEK_API_URL:https://api.deepseek.com/chat/completions}
+  model: ${DEEPSEEK_MODEL:deepseek-v4-flash}
