@@ -1,0 +1,9 @@
+target/
+.mvn/
+*.iml
+.idea/
+.vscode/
+.env
+*.log
+uploads/
+src/main/resources/application-local.yml
