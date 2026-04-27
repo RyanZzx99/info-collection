@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>选择收集任务</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell narrow">
+    <section class="hero">
+        <p class="eyebrow">Collect</p>
+        <h1>选择收集任务</h1>
+        <p class="lead">每个收集任务有独立 key，进入后可表单填写、自然语言识别、下载模板或上传 Excel。</p>
+        <div class="task-list" th:if="${!#lists.isEmpty(keys)}">
+            <a class="task-link" th:each="item : ${keys}" th:href="@{/collect/{key}(key=${item.collectionKey})}">
+                <strong th:text="${item.name}">收集任务</strong>
+                <span th:text="'/collect/' + ${item.collectionKey}">/collect/key</span>
+            </a>
+        </div>
+        <div class="notice danger" th:if="${#lists.isEmpty(keys)}">当前没有已启用的收集任务，请先到后台创建 key。</div>
+        <div class="actions">
+            <a class="button secondary" th:href="@{/admin}">进入后台</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

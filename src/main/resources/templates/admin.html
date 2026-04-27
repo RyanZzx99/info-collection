@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>后台管理</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Admin</p>
+            <h1>收集任务</h1>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button class="button ghost" type="submit">退出</button>
+        </form>
+    </header>
+
+    <div class="notice danger" th:if="${keyError}" th:text="${keyError}">错误</div>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>新建 key</h2>
+            <p>key 会出现在收集链接中，例如 /collect/2026-ap-hk。</p>
+        </div>
+        <form class="inline-form" th:action="@{/admin/keys}" th:object="${collectionKeyForm}" method="post">
+            <label>
+                <span>key</span>
+                <input th:field="*{collectionKey}" placeholder="2026-ap-hk">
+                <small class="field-error" th:if="${#fields.hasErrors('collectionKey')}" th:errors="*{collectionKey}"></small>
+            </label>
+            <label>
+                <span>名称</span>
+                <input th:field="*{name}" placeholder="2026 AP 香港收集">
+                <small class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></small>
+            </label>
+            <button class="button primary" type="submit">创建</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="section-title">
+            <h2>全部 key</h2>
+            <p>进入详情页后可以导入 Excel、查看数据和导出 Excel。</p>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>key</th>
+                    <th>名称</th>
+                    <th>状态</th>
+                    <th>记录数</th>
+                    <th>收集链接</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(keys)}">
+                    <td colspan="6" class="muted">暂无 key，先创建一个。</td>
+                </tr>
+                <tr th:each="item : ${keys}">
+                    <td class="mono" th:text="${item.collectionKey}">key</td>
+                    <td th:text="${item.name}">name</td>
+                    <td>
+                        <span class="badge" th:classappend="${item.enabled} ? ' good' : ' muted-badge'" th:text="${item.enabled} ? '启用' : '停用'">启用</span>
+                    </td>
+                    <td th:text="${counts[item.id]}">0</td>
+                    <td><a th:href="@{/collect/{key}(key=${item.collectionKey})}" th:text="@{/collect/{key}(key=${item.collectionKey})}">link</a></td>
+                    <td class="row-actions">
+                        <a class="button small secondary" th:href="@{/admin/keys/{key}(key=${item.collectionKey})}">详情</a>
+                        <form th:action="@{/admin/keys/{key}/toggle(key=${item.collectionKey})}" method="post">
+                            <button class="button small ghost" type="submit" th:text="${item.enabled} ? '停用' : '启用'">切换</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

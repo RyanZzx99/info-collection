@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>提交成功</title>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+</head>
+<body>
+<main class="shell narrow">
+    <section class="hero">
+        <p class="eyebrow" th:text="${collectionKey.collectionKey}">key</p>
+        <h1>提交成功</h1>
+        <p class="lead">
+            已成功保存
+            <strong th:text="${submittedCount ?: 1}">1</strong>
+            条信息。如果还有其他科目，请继续单独填写下一条。
+        </p>
+        <div class="actions">
+            <a class="button primary" th:href="@{/collect/{key}(key=${collectionKey.collectionKey})}">继续填写</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>
